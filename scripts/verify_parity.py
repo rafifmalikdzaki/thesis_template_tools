@@ -3,7 +3,7 @@
 
 Usage::
 
-    python3 scripts/verify_parity.py --latex ../thesis_template_latex \\
+    python3 scripts/verify_parity.py --latex ../thesis_template \\
         --typst ../thesis_template_typst [--json]
 
 Checks metadata agreement, object inventory and identifier order, table numeric

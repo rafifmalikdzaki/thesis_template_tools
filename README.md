@@ -1,93 +1,115 @@
-# thesis_template_tools
+# 🧰 Thesis Template Tools
 
-Shared conversion, metadata-synchronisation and parity tooling for the two
-independent thesis starters.
+[![CI](https://github.com/rafifmalikdzaki/thesis_template_tools/actions/workflows/ci.yml/badge.svg)](https://github.com/rafifmalikdzaki/thesis_template_tools/actions/workflows/ci.yml)
 
-## Three repositories
+Shared conversion, metadata-synchronisation and parity tooling for the two independent
+thesis starters. Nothing here is imported at build time: each template repository builds
+with its own toolchain alone, and these scripts operate on them through explicit
+command-line paths.
 
-The tools are one of three sibling repositories under the same parent
-directory. No repository imports from another at build time: the two template
-repositories build with their own toolchain alone, and this repository operates
-on them through explicit command-line paths.
+## 🧭 The Three Repositories
 
 | Repository | Purpose |
-| --- | --- |
-| `../thesis_template_latex/` | Self-contained LaTeX thesis starter (pdfLaTeX, Helvetica, manual Harvard bibliography, object interfaces in `thesis-layout.sty`) |
-| `../thesis_template_typst/` | Self-contained Typst thesis starter (`template.typ` helper API, bundled fonts) |
-| `thesis_template_tools/` | Conversion, metadata synchronisation and parity tooling (this repository) |
+| :--- | :--- |
+| [`thesis_template`](https://github.com/rafifmalikdzaki/thesis_template) | Self-contained LaTeX starter (pdfLaTeX, Helvetica, manual Harvard bibliography, object interfaces in `thesis-layout.sty`) |
+| [`thesis_template_typst`](https://github.com/rafifmalikdzaki/thesis_template_typst) | Self-contained Typst starter (`template.typ` helper API, bundled fonts) |
+| `thesis_template_tools` | Conversion, metadata synchronisation and parity verification (this repository) |
 
-Both starters render the same placeholder manuscript: 7 chapters, 2 abstracts
-(one bilingual abstract file), 1 appendix, 6 figures, 11 tables (one multipage
-with repeated headers, one landscape), 2 listings and 6 display equations.
+Both starters render the same placeholder manuscript: 7 chapters, 2 abstracts, 1 appendix,
+6 figures, 11 tables (one multipage with repeated headers, one landscape), 2 listings and
+6 display equations.
 
-## Requirements
+## ✨ What It Does
 
-Python 3.11 or newer, standard library only. Optional external tools:
+- **`sync_metadata.py`** — keeps the LaTeX `metadata.tex` and the Typst `metadata.json` in
+  agreement, with LaTeX escaping handled correctly. Use `--check` in CI.
+- **`convert_latex_to_typst.py`** — turns the LaTeX starter into an equivalent native
+  Typst project, using the Typst helper API (`thesis-figure`, `thesis-table`, `listing`,
+  `equation-row`, appendix and administrative pages).
+- **`convert_typst_to_latex.py`** — the reverse direction, producing the LaTeX project
+  including `% !TEX program = pdflatex`, `.latexmkrc` and `overleaf.txt`.
+- **`verify_parity.py`** — checks that both projects describe the same manuscript:
+  object inventory and numbering, table payloads, listing bodies, labels and references,
+  metadata, rendered-text agreement and administrative pages.
 
-* `typst` — to build the Typst project;
-* `latexmk` + a TeX Live installation — to build the LaTeX project;
-* `pdftotext` (poppler) — to verify rendered text and rendered table payloads.
+## 🚀 Requirements
 
-Every script takes explicit project paths, so nothing depends on the current
-directory.
+- Python 3.11 or newer, standard library only.
+- Optional: `typst` to build the Typst project, `latexmk` with TeX Live to build the
+  LaTeX project, and `pdftotext` (poppler) for rendered-text and rendered-table checks.
 
-## Commands
+Nothing needs installing beyond Python; the scripts take explicit project paths, so they
+work from any directory.
 
-```sh
-# keep metadata.tex and metadata.json in agreement (default authority: LaTeX)
-python3 scripts/sync_metadata.py --latex ../thesis_template_latex --typst ../thesis_template_typst
-python3 scripts/sync_metadata.py --latex ../thesis_template_latex --typst ../thesis_template_typst --check
+## ⚡ Quick Start
 
-# LaTeX -> Typst manuscript conversion
-python3 scripts/convert_latex_to_typst.py --source ../thesis_template_latex --target ../thesis_template_typst
-python3 scripts/convert_latex_to_typst.py --source ../thesis_template_latex --target ../thesis_template_typst --check
-
-# Typst -> LaTeX manuscript conversion (also writes .latexmkrc, overleaf.txt,
-# the % !TEX program magic comment and the page-transition macros)
-python3 scripts/convert_typst_to_latex.py --source ../thesis_template_typst --target ../thesis_template_latex
-python3 scripts/convert_typst_to_latex.py --source ../thesis_template_typst --target ../thesis_template_latex --check
-
-# cross-engine parity verification (add --json for machine-readable output)
-python3 scripts/verify_parity.py --latex ../thesis_template_latex --typst ../thesis_template_typst
+```bash
+git clone https://github.com/rafifmalikdzaki/thesis_template_tools.git
+cd thesis_template_tools
 ```
 
-Both converters write only the manuscript they own: `--target` must already be
-the corresponding starter, because the layout is owned by the template
-repository. The LaTeX -> Typst converter requires `template.typ` in the target;
-the Typst -> LaTeX converter requires `preamble.tex` and `thesis-layout.sty`.
-Conversion output is deterministic; run it twice and nothing changes.
+```bash
+# keep the two metadata files aligned (default authority: LaTeX)
+python3 scripts/sync_metadata.py \
+    --latex ../thesis_template --typst ../thesis_template_typst
+python3 scripts/sync_metadata.py \
+    --latex ../thesis_template --typst ../thesis_template_typst --check
 
-`--check` regenerates everything in memory and compares it with the target
-without writing. It exits 0 when the target is up to date, 1 when files are
-missing or stale, and 2 on unusable input. Converters fail with the file, line
-and construct on anything they cannot map; they never drop content silently.
+# convert one engine into the other
+python3 scripts/convert_latex_to_typst.py \
+    --source ../thesis_template --target ../thesis_template_typst
+python3 scripts/convert_typst_to_latex.py \
+    --source ../thesis_template_typst --target ../thesis_template
 
-## Tests
+# verify that both render the same manuscript
+python3 scripts/verify_parity.py \
+    --latex ../thesis_template --typst ../thesis_template_typst
+```
 
-```sh
+Every command has `--check`: it regenerates in memory and reports drift instead of
+writing, which is what CI uses.
+
+## 🔄 Conversion Coverage and Limits
+
+Supported in both directions: headings and sections, paragraphs and inline formatting,
+lists, figures with vector assets, multipage tables (with repeating headers), landscape
+tables, listings, display equations, labels and references, the bibliography, metadata,
+appendices, page-numbering transitions and the administrative pages.
+
+Deliberately unsupported, and failed loudly with the file and construct named instead of
+being dropped silently: TikZ diagrams (a LaTeX-only extension), merged table cells, raw
+Typst code, foreign LaTeX packages and bespoke layout commands, and any construct the
+converter cannot map exactly.
+
+A round trip (LaTeX → Typst → LaTeX) preserves the manuscript semantically — objects,
+identifiers, values and text — not byte for byte. The exact matrix and the known
+differences are documented in [`docs/CONVERSION.md`](docs/CONVERSION.md).
+
+## 🧪 Tests
+
+```bash
 python3 -m unittest discover -s tests -v
 ```
 
-The suite uses the small fixture pair under `tests/fixtures/` (a reduced LaTeX
-and Typst starter, plus a deliberate mismatch overlay) and additionally runs
-against the two real template repositories when they are present next to this
-one; those integration tests copy the projects to a temporary directory and
-skip cleanly otherwise. CI runs the same command on Python 3.12.
+The suite covers metadata sync and drift detection, both converters, the round trip,
+parity verification and a deliberate mismatch fixture. Tests that need the two real
+template repositories skip cleanly when they are not checked out as siblings.
 
-## Layout
+## 🤖 CI
 
-```text
-scripts/sync_metadata.py           metadata synchronisation
-scripts/convert_latex_to_typst.py  forward converter
-scripts/convert_typst_to_latex.py  reverse converter
-scripts/verify_parity.py           parity verifier
-scripts/thesis_tools/              shared implementation (parsers, renderers, verifier)
-tests/                             unittest suite and fixtures
-docs/CONVERSION.md                 supported constructs, limits and round-trip policy
-.github/workflows/ci.yml           test workflow
-```
+On every push and pull request, GitHub Actions runs the test suite on fixtures with
+Python 3.12. The real-repository integration tests run locally when the sibling
+repositories are present.
 
-Read [docs/CONVERSION.md](docs/CONVERSION.md) before relying on conversion:
-both directions are best-effort for the constructs the shipped starters use,
-and the documented limits (TikZ, merged cells, raw Typst code, foreign LaTeX
-packages, layout differences) are intentional.
+## 📚 Documentation
+
+- [`docs/CONVERSION.md`](docs/CONVERSION.md) — supported constructs, failure behaviour,
+  round-trip policy and known differences.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — how the three repositories relate, the
+  metadata contract and the verification criteria.
+- [`README` of the LaTeX starter](https://github.com/rafifmalikdzaki/thesis_template#readme)
+  and [of the Typst starter](https://github.com/rafifmalikdzaki/thesis_template_typst#readme)
+  for the author-facing documentation.
+
+---
+*Write once, verify twice. Selamat menulis! 🎓*

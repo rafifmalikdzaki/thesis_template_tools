@@ -3,7 +3,7 @@
 
 Usage::
 
-    python3 scripts/sync_metadata.py --latex ../thesis_template_latex \\
+    python3 scripts/sync_metadata.py --latex ../thesis_template \\
         --typst ../thesis_template_typst [--check] [--from latex|typst]
 
 The LaTeX starter stores the values as ``\\newcommand{\\Thesis...}{...}``

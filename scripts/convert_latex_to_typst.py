@@ -3,7 +3,7 @@
 
 Usage::
 
-    python3 scripts/convert_latex_to_typst.py --source ../thesis_template_latex \\
+    python3 scripts/convert_latex_to_typst.py --source ../thesis_template \\
         --target ../thesis_template_typst [--check]
 
 The converter reads the authoritative LaTeX project, inventories every object

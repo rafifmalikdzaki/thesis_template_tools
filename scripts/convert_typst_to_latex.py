@@ -4,7 +4,7 @@
 Usage::
 
     python3 scripts/convert_typst_to_latex.py --source ../thesis_template_typst \\
-        --target ../thesis_template_latex [--check]
+        --target ../thesis_template [--check]
 
 Best-effort reverse conversion of the constructs the Typst starter uses.  The
 converter writes the manuscript, ``metadata.tex`` and the LaTeX build/editor

@@ -10,7 +10,7 @@ Siblings under the same parent directory:
 
 | Repository | Purpose |
 | --- | --- |
-| `thesis_template_latex/` | Self-contained LaTeX thesis starter, Overleaf-ready package, own CI |
+| `thesis_template/` | Self-contained LaTeX thesis starter, Overleaf-ready package, own CI |
 | `thesis_template_typst/` | Self-contained Typst thesis starter, portable/Overleaf package, own CI |
 | `thesis_template_tools/` | Shared conversion, metadata synchronisation and parity tooling with its own CI |
 
@@ -76,7 +76,7 @@ or imports the repository into an Overleaf plan that supports Typst projects.
 LaTeX packaging contract:
 
 - Script: `scripts/package_overleaf.sh`, executable, runnable from any directory.
-- Output: `dist/thesis_template_latex_overleaf.zip` (git-ignored), project files at the
+- Output: `dist/thesis_template_overleaf.zip` (git-ignored), project files at the
   archive root so `main.tex` is the top-level master.
 - Contents: master, preamble, layout, metadata, front matter, chapters, backmatter,
   appendix, assets, README. Exclude build artefacts, compiled PDFs, git metadata, the
@@ -107,10 +107,10 @@ tests/                    fixtures and automated checks for all tools
 Command-line interface, all accepting explicit paths so nothing is hard-coded:
 
 ```sh
-python3 scripts/sync_metadata.py --latex ../thesis_template_latex --typst ../thesis_template_typst [--check]
-python3 scripts/convert_latex_to_typst.py --source ../thesis_template_latex --target ../thesis_template_typst [--check]
-python3 scripts/convert_typst_to_latex.py --source ../thesis_template_typst --target ../thesis_template_latex [--check]
-python3 scripts/verify_parity.py --latex ../thesis_template_latex --typst ../thesis_template_typst [--json]
+python3 scripts/sync_metadata.py --latex ../thesis_template --typst ../thesis_template_typst [--check]
+python3 scripts/convert_latex_to_typst.py --source ../thesis_template --target ../thesis_template_typst [--check]
+python3 scripts/convert_typst_to_latex.py --source ../thesis_template_typst --target ../thesis_template [--check]
+python3 scripts/verify_parity.py --latex ../thesis_template --typst ../thesis_template_typst [--json]
 ```
 
 Conversion policy: both directions are best-effort for the constructs used by the

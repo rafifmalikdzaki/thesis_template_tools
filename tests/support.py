@@ -26,7 +26,7 @@ TYPST_FIXTURE = FIXTURES / "typst"
 MISMATCH_OVERLAY = FIXTURES / "mismatch_typst"
 
 # The two template repositories live next to the tools repository.
-REAL_LATEX = TOOLS_ROOT.parent / "thesis_template_latex"
+REAL_LATEX = TOOLS_ROOT.parent / "thesis_template"
 REAL_TYPST = TOOLS_ROOT.parent / "thesis_template_typst"
 
 
