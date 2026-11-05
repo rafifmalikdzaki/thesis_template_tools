@@ -1,0 +1,19 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Tool and editor scratch output
+tmp/
+dist/
+*.tmp
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

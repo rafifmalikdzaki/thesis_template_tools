@@ -1,0 +1,5 @@
+Overleaf import instructions (fixture)
+
+1. Upload the project folder.
+2. Select a Typst-capable compiler.
+3. Build; main.typ is the master document.
