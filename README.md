@@ -11,7 +11,7 @@ command-line paths.
 
 | Repository | Purpose |
 | :--- | :--- |
-| [`thesis_template`](https://github.com/rafifmalikdzaki/thesis_template) | Class-based, engine-agnostic LaTeX starter: `thesis.cls` (pdfLaTeX default/recommended, XeLaTeX/LuaLaTeX selectable) and `thesis-layout.sty` (layout, object interfaces, manual Harvard bibliography) |
+| [`thesis_template`](https://github.com/rafifmalikdzaki/thesis_template) | Class-based, engine-agnostic LaTeX starter: `thesis.cls` (pdfLaTeX default/recommended, XeLaTeX/LuaLaTeX selectable from bundled `fonts/`) and `thesis-layout.sty` (layout, object interfaces, manual Harvard bibliography) |
 | [`thesis_template_typst`](https://github.com/rafifmalikdzaki/thesis_template_typst) | Self-contained Typst starter (`template.typ` helper API, bundled fonts) |
 | `thesis_template_tools` | Conversion, metadata synchronisation and parity verification (this repository) |
 
@@ -28,8 +28,8 @@ Both starters render the same placeholder manuscript: 7 chapters, 2 abstracts, 1
   `equation-row`, appendix and administrative pages).
 - **`convert_typst_to_latex.py`** — the reverse direction, producing the class-based
   LaTeX project: `main.tex` with `% !TEX program = pdflatex` and
-  `\documentclass{thesis}`, the canonical `thesis.cls` and `thesis-layout.sty`, an
-  engine-neutral `.latexmkrc` and `overleaf.txt`.
+  `\documentclass{thesis}`, the canonical `thesis.cls` and `thesis-layout.sty`, the
+  bundled `fonts/` directory, an engine-neutral `.latexmkrc` and `overleaf.txt`.
 - **`verify_parity.py`** — checks that both projects describe the same manuscript:
   object inventory and numbering, table payloads, listing bodies, labels and references,
   metadata, rendered-text agreement and administrative pages.
@@ -78,9 +78,12 @@ lists, figures with vector assets, multipage tables (with repeating headers), la
 tables, listings, display equations, labels and references, the bibliography, metadata,
 appendices, page-numbering transitions and the administrative pages.
 
-LaTeX output is class-based and engine-agnostic: pdfLaTeX is the recommended default,
-while XeLaTeX and LuaLaTeX are selectable (`bash build.sh --engine=xelatex`) through the
-`iftex` branches in `thesis.cls`. Legacy `preamble.tex` starters are still accepted as
+LaTeX output is class-based, engine-agnostic and self-contained: pdfLaTeX is the
+recommended default, while XeLaTeX and LuaLaTeX are selectable
+(`bash build.sh --engine=xelatex`) through the `iftex` branches in `thesis.cls`. The
+converted project carries its own `fonts/` (TeX Gyre Heros, Latin Modern Mono/Math,
+DejaVu Sans and their licences), loaded with `Path=fonts/`, so the Unicode build needs no
+system `tex-gyre` package. Legacy `preamble.tex` starters are still accepted as
 conversion sources and targets; the converter replaces that boilerplate with the
 canonical class.
 

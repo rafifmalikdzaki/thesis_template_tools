@@ -13,7 +13,7 @@ The converters write the manuscript, metadata and referenced assets. They do
 | Direction | Target requirement | Written | Never written |
 | --- | --- | --- | --- |
 | LaTeX -> Typst | `template.typ` exposing `thesis-figure`, `thesis-table`, `listing`, `equation-row`, `thesis-bibliography`, `appendix`, `landscape`, `outline-page`, `cover-page`, `approval-page`, `declaration-page`, `thesis` | `main.typ`, `metadata.json`, `frontmatter/`, `chapters/`, `backmatter/`, `lampiran/`, `assets/` | `template.typ`, `fonts/`, `build.sh`, `docs/`, CI, `README.md`; the LaTeX class, package and preamble are never converted into Typst content |
-| Typst -> LaTeX | a LaTeX starter exposing the layout interfaces, either class-based (`thesis.cls` + `thesis-layout.sty`) or legacy (`preamble.tex` + `thesis-layout.sty`) | `main.tex` (with `% !TEX program = pdflatex` and `\documentclass{thesis}`), `metadata.tex`, the canonical `thesis.cls` and `thesis-layout.sty`, engine-neutral `.latexmkrc`, `overleaf.txt`, `frontmatter/`, `chapters/`, `backmatter/`, `lampiran/`, `assets/` | `build.sh`, `docs/`, CI, `README.md`; a legacy `preamble.tex` is left untouched but is no longer read by the emitted class |
+| Typst -> LaTeX | a LaTeX starter exposing the layout interfaces, either class-based (`thesis.cls` + `thesis-layout.sty`) or legacy (`preamble.tex` + `thesis-layout.sty`) | `main.tex` (with `% !TEX program = pdflatex` and `\documentclass{thesis}`), `metadata.tex`, the canonical `thesis.cls` and `thesis-layout.sty`, the bundled `fonts/` (TeX Gyre Heros, Latin Modern Mono/Math, DejaVu Sans and licences), engine-neutral `.latexmkrc`, `overleaf.txt`, `frontmatter/`, `chapters/`, `backmatter/`, `lampiran/`, `assets/` | `build.sh`, `docs/`, CI, `README.md`; a legacy `preamble.tex` is left untouched but is no longer read by the emitted class |
 
 ### LaTeX output: class-based and engine-agnostic
 
@@ -27,6 +27,11 @@ The Typst -> LaTeX direction emits the class-based project:
   filename-based TeX Gyre Heros and Latin Modern Mono, plus unicode-math with
   Latin Modern Math), Indonesian `babel`, `metadata.tex`, the layout package and
   the hyperref document information.
+* `fonts/` (canonical templates, `scripts/templates/latex/fonts/`) is copied with
+  the project: TeX Gyre Heros regular/bold/italic/bold-italic, Latin Modern Mono
+  and Math, DejaVu Sans and the GUST/LPPL/DejaVu licences plus the font notice.
+  The class loads them with `Path=fonts/`, so the XeLaTeX/LuaLaTeX branch is
+  self-contained and needs no system `tex-gyre` package.
 * `thesis-layout.sty` (canonical template) owns geometry, headings, captions,
   object interfaces and the administrative pages, and never reloads an engine
   font package.
@@ -38,11 +43,13 @@ The Typst -> LaTeX direction emits the class-based project:
   selectable in Overleaf.
 
 pdfLaTeX is the recommended engine (institutional Helvetica look, stable
-pagination); the XeLaTeX/LuaLaTeX branch uses OpenType fonts by filename from the
-TeX distribution, so no system fonts are needed but pagination may shift. Latin
-Modern Math has no U+2713, so that branch renders the comparison-table check
-mark (\checkmark) from DejaVu Sans; the override is inside the Unicode branch
-only and must not be moved to the pdfLaTeX path.
+pagination); the XeLaTeX/LuaLaTeX branch uses the bundled OpenType fonts loaded by
+filename from `fonts/`, so nothing has to be installed at the system level, but
+pagination may shift (35 pages for the shipped manuscript under XeLaTeX versus 34
+under pdfLaTeX). Latin Modern Math has no U+2713, so that branch renders the
+comparison-table check mark (\checkmark) from the bundled DejaVu Sans; the
+override is inside the Unicode branch only and must not be moved to the pdfLaTeX
+path.
 
 Build/editor support files are handled explicitly:
 
