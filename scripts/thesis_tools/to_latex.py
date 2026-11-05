@@ -9,12 +9,15 @@ documented limits.
 
 The converter emits the class-based, engine-agnostic LaTeX project: the
 manuscript, ``metadata.tex``, the canonical ``thesis.cls`` and
-``thesis-layout.sty`` templates, an engine-neutral ``.latexmkrc`` (pdfLaTeX,
-XeLaTeX and LuaLaTeX command lines, no ``$pdf_mode``) and ``overleaf.txt``
-(pdfLaTeX recommended, XeLaTeX/LuaLaTeX selectable).  The target must be a
-LaTeX thesis starter — class-based ``thesis.cls`` or the legacy
-``preamble.tex`` layout — because the converter reuses its manuscript
-structure and assets, but it writes the canonical class and layout itself.
+``thesis-layout.sty`` templates, the bundled ``fonts/`` directory (TeX Gyre
+Heros, Latin Modern Mono/Math, DejaVu Sans and their licences), an
+engine-neutral ``.latexmkrc`` (pdfLaTeX, XeLaTeX and LuaLaTeX command lines,
+no ``$pdf_mode``) and ``overleaf.txt`` (pdfLaTeX recommended,
+XeLaTeX/LuaLaTeX selectable).  The bundled fonts make the XeLaTeX/LuaLaTeX
+branch self-contained: no system ``tex-gyre`` package is required.
+The target must be a LaTeX thesis starter — class-based ``thesis.cls`` or the
+legacy ``preamble.tex`` layout — because the converter reuses its manuscript
+structure and assets, but it writes the canonical class, layout and fonts.
 """
 
 from __future__ import annotations
@@ -34,9 +37,10 @@ from .common import (
 )
 from .to_typst import ConversionResult, _dedent
 
-# Canonical class/package templates: build boilerplate emitted verbatim.
+# Canonical class/package/font templates: build boilerplate emitted verbatim.
 TEMPLATES = Path(__file__).resolve().parent.parent / "templates" / "latex"
 TEMPLATE_FILES: tuple[str, ...] = ("thesis.cls", "thesis-layout.sty")
+TEMPLATE_FONT_DIR = TEMPLATES / "fonts"
 
 # Engine-neutral latexmk configuration: the engine is chosen on the command
 # line (-pdf/-xelatex/-lualatex) by build.sh or Overleaf, so no $pdf_mode is
@@ -111,6 +115,8 @@ def convert_typst_to_latex(source: Path, target: Path) -> ReverseResult:
     )
     for name in TEMPLATE_FILES:
         result.files[name] = _template(name)
+    for relative, source in _template_assets().items():
+        result.assets[relative] = source
     result.files[".latexmkrc"] = LATEXMKRC
     result.files["overleaf.txt"] = OVERLEAF
     result.files["main.tex"] = _render_main(project, label_kinds, result)
@@ -134,6 +140,22 @@ def _template(name: str) -> str:
             "the tools repository is incomplete"
         )
     return read_text(path)
+
+
+def _template_assets() -> dict[str, Path]:
+    """Bundled asset files written with the project (fonts and licences)."""
+    if not TEMPLATE_FONT_DIR.is_dir():
+        raise ToolError(
+            f"canonical LaTeX font directory is missing: {TEMPLATE_FONT_DIR}; "
+            "the tools repository is incomplete"
+        )
+    assets: dict[str, Path] = {}
+    for path in sorted(TEMPLATE_FONT_DIR.rglob("*")):
+        if path.is_file():
+            assets[path.relative_to(TEMPLATES).as_posix()] = path
+    if not assets:
+        raise ToolError(f"canonical LaTeX font directory is empty: {TEMPLATE_FONT_DIR}")
+    return assets
 
 
 def _validate_target(target: Path) -> None:
