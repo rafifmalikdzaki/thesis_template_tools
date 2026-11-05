@@ -29,26 +29,28 @@
 \RequirePackage{iftex}
 
 % ── Typeface and mathematics per engine ───────────────────────────────
-% XeLaTeX/LuaLaTeX: OpenType fonts selected by filename, so the build
-% needs no system font configuration. Mathematics falls back to Latin
+% XeLaTeX/LuaLaTeX: OpenType fonts are bundled under fonts/ and loaded by
+% filename with Path=fonts/, so the Unicode build needs neither a system
+% tex-gyre package nor font configuration. Mathematics falls back to Latin
 % Modern Math, so it differs from the pdfLaTeX sans-serif mathematics and
 % pagination may shift slightly.
 \newcommand{\thesis@opentypefonts}{%
   \RequirePackage{fontspec}%
   \setmainfont{texgyreheros}[%
+    Path=fonts/,%
     Extension=.otf,%
     UprightFont=*-regular,%
     BoldFont=*-bold,%
     ItalicFont=*-italic,%
     BoldItalicFont=*-bolditalic]%
-  \setmonofont{lmmono10-regular}[Extension=.otf]%
+  \setmonofont{lmmono10-regular}[Path=fonts/, Extension=.otf]%
   \RequirePackage{amsmath}%
   \RequirePackage{amssymb}%
   \RequirePackage{unicode-math}%
-  \setmathfont{latinmodern-math.otf}
+  \setmathfont{latinmodern-math.otf}[Path=fonts/]
   % Latin Modern Math has no check-mark glyph; the template uses
   % \checkmark in comparison tables. Render it from bundled DejaVu Sans.
-  \newfontfamily\thesis@checkmarkfont{DejaVuSans.ttf}
+  \newfontfamily\thesis@checkmarkfont[Path=fonts/]{DejaVuSans.ttf}
   \AtBeginDocument{\renewcommand{\checkmark}{{\thesis@checkmarkfont\char"2713}}}%
 }
 

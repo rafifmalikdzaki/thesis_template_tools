@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 import unittest
 
 import support
@@ -39,6 +41,8 @@ class ConvertToLatexTests(support.ToolTestCase):
         self.assertIn("unicode-math", thesis_class)
         self.assertIn("\\input{metadata.tex}", thesis_class)
         self.assertIn("\\RequirePackage{thesis-layout}", thesis_class)
+        # Unicode engines load the bundled fonts relative to the project root.
+        self.assertIn("Path=fonts/", thesis_class)
         # Unicode engines have no U+2713 in Latin Modern Math; the class must
         # provide the DejaVu Sans check-mark fallback inside the fontspec
         # branch only. Placing it globally would break pdfLaTeX.
@@ -56,6 +60,14 @@ class ConvertToLatexTests(support.ToolTestCase):
         layout = (self.latex / "thesis-layout.sty").read_text(encoding="utf-8")
         self.assertIn("{geometry}", layout)
         self.assertIn("\\thesiscoverpage", layout)
+        # Bundled Unicode fonts and licences travel with the project.
+        for relative in (
+            "fonts/texgyreheros-regular.otf",
+            "fonts/latinmodern-math.otf",
+            "fonts/DejaVuSans.ttf",
+            "fonts/LPPL-1.3c.txt",
+        ):
+            self.assertTrue((self.latex / relative).is_file(), relative)
         self.assertNotIn("\\RequirePackage{fontspec}", layout)
         self.assertNotIn("\\usepackage{fontspec}", layout)
         self.assertNotIn("\\usepackage[T1]{fontenc}", layout)
@@ -137,6 +149,36 @@ class ConvertToLatexTests(support.ToolTestCase):
         self.assertIn("XeLaTeX", overleaf)
         self.assertIn("LuaLaTeX", overleaf)
         self.assertIn("recommended", overleaf)
+
+    @unittest.skipUnless(
+        shutil.which("latexmk") and shutil.which("pdflatex") and shutil.which("xelatex"),
+        "LaTeX toolchain (latexmk/pdflatex/xelatex) is unavailable",
+    )
+    def test_converted_project_builds_with_pdflatex_and_xelatex(self) -> None:
+        code, _out, err = self.convert()
+        self.assertEqual(code, 0, err)
+        for engine in ("pdflatex", "xelatex"):
+            # Switching engines requires a clean auxiliary directory.
+            shutil.rmtree(self.latex / "build", ignore_errors=True)
+            arguments = ["bash", "build.sh"] if engine == "pdflatex" else [
+                "bash",
+                "build.sh",
+                f"--engine={engine}",
+            ]
+            process = subprocess.run(
+                arguments,
+                cwd=self.latex,
+                capture_output=True,
+                text=True,
+                timeout=600,
+                check=False,
+            )
+            self.assertEqual(
+                process.returncode,
+                0,
+                f"{engine} build failed:\n{process.stdout[-3000:]}\n{process.stderr[-1500:]}",
+            )
+            self.assertTrue((self.latex / "main.pdf").is_file())
 
     def test_check_is_idempotent_and_detects_drift(self) -> None:
         code, _out, _err = self.convert(check=True)

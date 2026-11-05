@@ -21,7 +21,27 @@ from thesis_tools.parity import verify
 
 
 def _copy_repository(source: Path, destination: Path) -> None:
-    shutil.copytree(source, destination, ignore=shutil.ignore_patterns(".git", "*.aux", "*.log"))
+    """Copy a starter without build products, so both copies build fresh."""
+    shutil.copytree(
+        source,
+        destination,
+        ignore=shutil.ignore_patterns(
+            ".git",
+            "build",
+            "dist",
+            "main.pdf",
+            "*.aux",
+            "*.log",
+            "*.fls",
+            "*.fdb_latexmk",
+            "*.synctex.gz",
+            "*.toc",
+            "*.lof",
+            "*.lot",
+            "*.lol",
+            "*.out",
+        ),
+    )
 
 
 @unittest.skipUnless(
@@ -36,13 +56,38 @@ class RealRepositoryTests(support.ToolTestCase):
         _copy_repository(support.REAL_LATEX, self.latex)
         _copy_repository(support.REAL_TYPST, self.typst)
 
-    def _build(self, repo: Path, label: str) -> bool:
+    def _page_count(self, pdf: Path) -> str:
+        tool = shutil.which("pdfinfo")
+        if tool is None or not pdf.is_file():
+            return "unknown"
+        process = subprocess.run(
+            [tool, str(pdf)], capture_output=True, text=True, check=False
+        )
+        for line in process.stdout.splitlines():
+            if line.startswith("Pages:"):
+                return line.split(":", 1)[1].strip()
+        return "unknown"
+
+    def _clone_for_engine(self, repo: Path, engine: str) -> Path:
+        """A build-only copy, so a secondary engine cannot disturb the parity PDF."""
+        target = self.workdir / f"{repo.name}-{engine}"
+        shutil.copytree(
+            repo,
+            target,
+            ignore=shutil.ignore_patterns("build", "main.pdf", "*.aux", "*.log", "*.xdv", "*.fls", "*.fdb_latexmk"),
+        )
+        return target
+
+    def _build(self, repo: Path, label: str, engine: str | None = None) -> bool:
         """Build a project with its own ``bash build.sh``; skip without tools."""
         script = repo / "build.sh"
         if not script.is_file():
             return False
+        command = ["bash", "build.sh"]
+        if engine is not None:
+            command.append(f"--engine={engine}")
         process = subprocess.run(
-            ["bash", "build.sh"],
+            command,
             cwd=repo,
             capture_output=True,
             text=True,
@@ -69,6 +114,25 @@ class RealRepositoryTests(support.ToolTestCase):
         # Build both copies so parity compares current sources, not a stale PDF.
         latex_built = self._build(self.latex, "LaTeX")
         typst_built = self._build(self.typst, "Typst")
+        if latex_built:
+            # Bundled Unicode fonts make the XeLaTeX branch self-contained.
+            for relative in (
+                "thesis.cls",
+                "fonts/texgyreheros-regular.otf",
+                "fonts/latinmodern-math.otf",
+                "fonts/DejaVuSans.ttf",
+                "fonts/LPPL-1.3c.txt",
+            ):
+                self.assertTrue((self.latex / relative).is_file(), relative)
+            pdflatex_pages = self._page_count(self.latex / "main.pdf")
+            self.assertTrue(pdflatex_pages.isdigit(), "pdflatex produced no page count")
+            # The XeLaTeX branch is checked on a build-only copy: it shifts
+            # pagination and must not replace the pdflatex PDF used by parity.
+            xelatex_copy = self._clone_for_engine(self.latex, "xelatex")
+            xelatex_built = self._build(xelatex_copy, "LaTeX (xelatex)", "xelatex")
+            if xelatex_built:
+                xelatex_pages = self._page_count(xelatex_copy / "main.pdf")
+                self.assertTrue(xelatex_pages.isdigit(), "xelatex produced no page count")
         report = verify(self.latex, self.typst)
         self.assertFalse(
             report.failed,
@@ -96,6 +160,25 @@ class RealRepositoryTests(support.ToolTestCase):
         self.assertEqual(code, 0, out + err)
         latex_built = self._build(self.latex, "LaTeX")
         typst_built = self._build(self.typst, "Typst")
+        if latex_built:
+            # Bundled Unicode fonts make the XeLaTeX branch self-contained.
+            for relative in (
+                "thesis.cls",
+                "fonts/texgyreheros-regular.otf",
+                "fonts/latinmodern-math.otf",
+                "fonts/DejaVuSans.ttf",
+                "fonts/LPPL-1.3c.txt",
+            ):
+                self.assertTrue((self.latex / relative).is_file(), relative)
+            pdflatex_pages = self._page_count(self.latex / "main.pdf")
+            self.assertTrue(pdflatex_pages.isdigit(), "pdflatex produced no page count")
+            # The XeLaTeX branch is checked on a build-only copy: it shifts
+            # pagination and must not replace the pdflatex PDF used by parity.
+            xelatex_copy = self._clone_for_engine(self.latex, "xelatex")
+            xelatex_built = self._build(xelatex_copy, "LaTeX (xelatex)", "xelatex")
+            if xelatex_built:
+                xelatex_pages = self._page_count(xelatex_copy / "main.pdf")
+                self.assertTrue(xelatex_pages.isdigit(), "xelatex produced no page count")
         report = verify(self.latex, self.typst)
         self.assertFalse(
             report.failed,

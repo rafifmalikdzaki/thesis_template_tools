@@ -176,6 +176,14 @@ class RoundTripTests(support.ToolTestCase):
         self.assertEqual(code, 0, err)
         self.assertTrue((self.typst_target / "assets" / "fig-1.pdf").is_file())
         self.assertTrue((self.typst_target / "assets" / "ub-logo-small.png").is_file())
+        # The reverse direction also emits the bundled Unicode fonts.
+        code, out, err = self.run_tool(
+            convert_typst_to_latex.main,
+            ["--source", str(self.typst_target), "--target", str(self.latex_target)],
+        )
+        self.assertEqual(code, 0, out + err)
+        self.assertTrue((self.latex_target / "fonts" / "texgyreheros-regular.otf").is_file())
+        self.assertTrue((self.latex_target / "fonts" / "latinmodern-math.otf").is_file())
 
 
 if __name__ == "__main__":
