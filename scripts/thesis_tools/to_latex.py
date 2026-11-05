@@ -7,10 +7,14 @@ bibliography entries, metadata, appendix and administrative pages) and refuses
 anything else with file, line and construct.  See ``docs/CONVERSION.md`` for the
 documented limits.
 
-The converter writes the manuscript and the LaTeX build/editor support files
-(``% !TEX program`` magic comment, ``.latexmkrc``, ``overleaf.txt``).  The
-layout files (``preamble.tex``, ``thesis-layout.sty``) are owned by the LaTeX
-starter: the target must already contain them.
+The converter emits the class-based, engine-agnostic LaTeX project: the
+manuscript, ``metadata.tex``, the canonical ``thesis.cls`` and
+``thesis-layout.sty`` templates, an engine-neutral ``.latexmkrc`` (pdfLaTeX,
+XeLaTeX and LuaLaTeX command lines, no ``$pdf_mode``) and ``overleaf.txt``
+(pdfLaTeX recommended, XeLaTeX/LuaLaTeX selectable).  The target must be a
+LaTeX thesis starter — class-based ``thesis.cls`` or the legacy
+``preamble.tex`` layout — because the converter reuses its manuscript
+structure and assets, but it writes the canonical class and layout itself.
 """
 
 from __future__ import annotations
@@ -30,11 +34,34 @@ from .common import (
 )
 from .to_typst import ConversionResult, _dedent
 
+# Canonical class/package templates: build boilerplate emitted verbatim.
+TEMPLATES = Path(__file__).resolve().parent.parent / "templates" / "latex"
+TEMPLATE_FILES: tuple[str, ...] = ("thesis.cls", "thesis-layout.sty")
+
+# Engine-neutral latexmk configuration: the engine is chosen on the command
+# line (-pdf/-xelatex/-lualatex) by build.sh or Overleaf, so no $pdf_mode is
+# fixed here.  No BibTeX/Biber and no makeindex pass is needed.
 LATEXMKRC = """\
-# latexmk configuration for the thesis starter.
-# Build with pdflatex; there is no BibTeX/BibLaTeX stage (manual Harvard list).
-$pdf_mode = 1;
-$pdflatex = 'pdflatex -interaction=nonstopmode -file-line-error -synctex=1 %O %S';
+# latexmk configuration for the engine-agnostic thesis project.
+#
+# The engine is selected on the latexmk command line (-pdf for pdfLaTeX,
+# -xelatex, -lualatex) by build.sh or by Overleaf's compiler setting, so this
+# file defines the per-engine command strings and does NOT set $pdf_mode.
+# pdfLaTeX is the recommended default (Helvetica text, sans-serif
+# mathematics via sansmathfonts, stable pagination); XeLaTeX and LuaLaTeX use
+# fontspec and Latin Modern Math, so pagination may shift slightly.
+#
+# thesis.cls owns the engine-specific font setup; metadata.tex is read by the
+# class, and the bibliography is manually maintained Harvard text in
+# backmatter/referensi.tex. No BibTeX, Biber or makeindex pass is needed.
+
+$pdflatex = 'pdflatex -file-line-error -synctex=1 -interaction=nonstopmode -halt-on-error %O %S';
+$xelatex = 'xelatex -file-line-error -synctex=1 -interaction=nonstopmode -halt-on-error %O %S';
+$lualatex = 'lualatex -file-line-error -synctex=1 -interaction=nonstopmode -halt-on-error %O %S';
+
+$bibtex_use = 0;  # never run BibTeX: the bibliography is manual text
+$makeindex = '';  # no index in this document
+
 @default_files = ('main.tex');
 """
 
@@ -42,18 +69,26 @@ OVERLEAF = """\
 Overleaf import instructions
 ============================
 
-This project builds on Overleaf with the pdfLaTeX compiler.
+This project is a class-based, engine-agnostic LaTeX project. pdfLaTeX is the
+recommended compiler; XeLaTeX and LuaLaTeX are also supported.
 
 1. Zip this repository directory (or upload it as a project folder).
 2. In Overleaf choose "New Project -> Upload Project" and select the archive.
-3. Open Menu -> Compiler and select "pdfLaTeX".
-4. The main document is main.tex; Overleaf detects it automatically.
-   If it does not, set "Main document" to main.tex in the project settings.
-5. Build. No bibliography tool (BibTeX/Biber) is required: the bibliography
-   is a manually maintained Harvard ARU list in backmatter/referensi.tex.
+3. Open Menu -> Compiler. Select "pdfLaTeX" (recommended). "XeLaTeX" or
+   "LuaLaTeX" may be selected instead: thesis.cls then loads fontspec,
+   unicode-math and the filename-based TeX Gyre / Latin Modern fonts from the
+   TeX distribution, so no system fonts are required. Pagination may shift.
+4. The main document is main.tex; Overleaf detects it automatically. If it
+   does not, set "Main document" to main.tex in the project settings.
+5. Build. No bibliography tool (BibTeX/Biber) and no makeindex pass is
+   required: the bibliography is a manually maintained Harvard ARU list.
 
-The build can also be run locally with: bash build.sh
+The build can also be run locally, with an optional engine selection:
+  bash build.sh                      # pdfLaTeX (default, recommended)
+  bash build.sh --engine=xelatex     # XeLaTeX
+  bash build.sh --engine=lualatex    # LuaLaTeX
 """
+
 
 
 @dataclass
@@ -74,6 +109,8 @@ def convert_typst_to_latex(source: Path, target: Path) -> ReverseResult:
     result.files["metadata.tex"] = render_metadata_tex(
         metadata, generator="scripts/sync_metadata.py"
     )
+    for name in TEMPLATE_FILES:
+        result.files[name] = _template(name)
     result.files[".latexmkrc"] = LATEXMKRC
     result.files["overleaf.txt"] = OVERLEAF
     result.files["main.tex"] = _render_main(project, label_kinds, result)
@@ -89,24 +126,39 @@ def convert_typst_to_latex(source: Path, target: Path) -> ReverseResult:
     return result
 
 
+def _template(name: str) -> str:
+    path = TEMPLATES / name
+    if not path.is_file():
+        raise ToolError(
+            f"canonical LaTeX template is missing: {path}; "
+            "the tools repository is incomplete"
+        )
+    return read_text(path)
+
+
 def _validate_target(target: Path) -> None:
+    """Accept a class-based (thesis.cls) or legacy (preamble.tex) starter."""
     target = target.resolve()
     if not target.is_dir():
         raise ToolError(f"target directory does not exist: {target}")
-    missing = []
-    for name in ("preamble.tex", "thesis-layout.sty"):
-        if not (target / name).is_file():
-            missing.append(name)
-    if missing:
+    class_file = target / "thesis.cls"
+    preamble = target / "preamble.tex"
+    layout = target / "thesis-layout.sty"
+    if not layout.is_file():
         raise ToolError(
-            f"{target}: missing {', '.join(missing)}; the target must be the LaTeX "
-            "thesis starter (the converter writes the manuscript, not the layout)"
+            f"{target}: thesis-layout.sty is missing; the target must be the LaTeX "
+            "thesis starter (class-based thesis.cls or legacy preamble.tex layout)"
         )
-    layout = read_text(target / "thesis-layout.sty")
+    if not class_file.is_file() and not preamble.is_file():
+        raise ToolError(
+            f"{target}: neither thesis.cls nor preamble.tex is present; the target "
+            "must be the LaTeX thesis starter"
+        )
+    layout_text = read_text(layout)
     for interface in tm.REQUIRED_LATEX_INTERFACES:
-        if interface not in layout:
+        if interface not in layout_text:
             raise ToolError(
-                f"{target / 'thesis-layout.sty'}: missing interface {interface}; "
+                f"{layout}: missing interface {interface}; "
                 "the target does not expose the LaTeX starter interface"
             )
 
@@ -163,14 +215,14 @@ def _render_main(
         "% =====================================================================",
         "%  Generated from the Typst master by scripts/convert_typst_to_latex.py.",
         "%  The master only fixes document order and page-numbering transitions.",
-        "%  preamble.tex → packages and metadata; thesis-layout.sty → layout",
+        "%  thesis.cls → engine, fonts, language, mathematics, metadata",
+        "%  thesis-layout.sty → layout and object interfaces",
+        "%  metadata.tex → administrative values",
         "%  frontmatter/ → front matter   chapters/ → chapters",
         "%  backmatter/ → bibliography    lampiran/ → appendix (letter numbering)",
         "% =====================================================================",
         "",
-        "\\documentclass[12pt,a4paper]{report}",
-        "",
-        "\\input{preamble}",
+        "\\documentclass{thesis}",
         "",
         "\\begin{document}",
         "",

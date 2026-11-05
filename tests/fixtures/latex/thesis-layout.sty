@@ -1,26 +1,259 @@
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{thesis-layout}[fixture layout]
+\ProvidesPackage{thesis-layout}[2026/11/05 Institutional layout and shared object interfaces]
+
+% =====================================================================
+%  THESIS LAYOUT — institutional formatting and object interfaces
+% =====================================================================
+%  This package owns all layout and formatting: page geometry, headings,
+%  captions, numbering transitions, object interfaces and the
+%  administrative pages. main.tex stays structural only (document order and
+%  includes) and calls the structure interfaces defined below.
+%
+%  The typesetting engine, typeface, language and mathematics setup are
+%  owned by thesis.cls (pdfLaTeX: helvet + sansmathfonts; XeLaTeX/LuaLaTeX:
+%  fontspec + unicode-math). This package loads neither fonts nor an engine.
+%
+%  It never contains manuscript prose or personal data: metadata comes from
+%  metadata.tex and the administrative pages below render those values.
+%  Chapters must not redefine layout; they use the interfaces documented in
+%  docs/EDITING.md.
+% =====================================================================
+
+% ── Page geometry, line spacing and paragraph indentation ─────────────
+\usepackage[a4paper,left=4cm,right=3cm,top=3cm,bottom=3cm]{geometry}
+\usepackage{setspace}
+% indentfirst: the first paragraph after a heading is indented, as the
+% institutional guidelines expect.
+\usepackage{indentfirst}
+\onehalfspacing
+\setlength{\parindent}{1.27cm}
+\setlength{\parskip}{0pt plus 1pt}
+
+% ── Graphics, floating objects and captions ───────────────────────────
 \usepackage{graphicx}
+\graphicspath{{assets/}}
 \usepackage{booktabs}
-\usepackage{longtable}
 \usepackage{array}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{float}
 \usepackage{pdflscape}
-\usepackage{amsmath}
-\usepackage{listings}
+\usepackage{calc}
+\usepackage[export]{adjustbox}
+\usepackage{caption}
+% Captions: bold label and bold text, centred, table captions above the
+% table and figure captions below the figure.
+\captionsetup{font=normalsize,labelfont=bf,textfont=bf,
+  justification=centering,singlelinecheck=false,labelsep=space}
+\captionsetup[figure]{position=below}
+\captionsetup[table]{position=above}
 
-\newcommand{\thesisfigure}[1]{\includegraphics{#1}}
-\newenvironment{thesistable}{}{}
-\newenvironment{thesisbibliography}{}{}
+% ── Mathematics ───────────────────────────────────────────────────────
+% amsmath/amssymb are loaded by thesis.cls for every engine; the layout
+% keeps the chapter-based equation numbering contract.
+\numberwithin{equation}{chapter}
+\usepackage{siunitx}
+\sisetup{output-decimal-marker={,}}
 
-% Page-numbering transitions may live in interface macros.
-\newcommand{\thesisfrontmatter}{\pagenumbering{roman}\setcounter{page}{1}}
-\newcommand{\thesismainmatter}{\pagenumbering{arabic}\setcounter{page}{1}}
+% ── Chapter and section headings ──────────────────────────────────────
+% Chapters: "BAB <n> <TITLE>", centred, bold, normal size.
+% Sections: "<n>.<m> <Title>", bold, left aligned.
+\usepackage{titlesec}
+\newcommand{\thesis@chapapp}{BAB}
+\titleformat{\chapter}[block]
+  {\normalfont\normalsize\bfseries\centering}
+  {\thesis@chapapp\space\thechapter\space}
+  {0pt}
+  {\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{0pt}{20pt}
+\titleformat{\section}
+  {\normalfont\normalsize\bfseries}
+  {\thesection}
+  {1em}
+  {}
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries}
+  {\thesubsection}
+  {1em}
+  {}
+
+% ── Appendices ────────────────────────────────────────────────────────
+% \appendix keeps the report-class letter numbering but switches the
+% chapter prefix to LAMPIRAN; sections and objects then number A.1, A.2.
+\let\thesis@appendix\appendix
+\renewcommand{\appendix}{%
+  \thesis@appendix
+  \gdef\thesis@chapapp{LAMPIRAN}%
+}
+
+% ── Document structure interfaces ─────────────────────────────────────
+% main.tex is structural only: it calls these interfaces around its
+% \include lines. Page-numbering transitions and the appendix switch are
+% formatting, so their definitions live here rather than in the master file.
+\newcommand{\thesiscovermatter}{\pagenumbering{gobble}}
+\newcommand{\thesisfrontmatter}{%
+  \pagenumbering{roman}%
+  \setcounter{page}{1}%
+}
+\newcommand{\thesismainmatter}{%
+  \clearpage
+  \pagenumbering{arabic}%
+  \setcounter{page}{1}%
+}
 \newcommand{\thesisappendix}{\appendix}
 
+% ── Code listings ─────────────────────────────────────────────────────
+\usepackage{xcolor}
+\definecolor{kodeBg}{HTML}{F7F7F4}
+\definecolor{kodeBingkai}{HTML}{9AA7B4}
+\definecolor{kodeKomentar}{HTML}{5A7D5A}
+\definecolor{kodeKunci}{HTML}{4A4A8C}
+\definecolor{kodeString}{HTML}{8C5A3C}
+\usepackage{listings}
+\renewcommand{\lstlistingname}{Kode Sumber}
+\renewcommand{\lstlistlistingname}{Daftar Kode Sumber}
+\lstdefinestyle{kode}{
+  backgroundcolor=\color{kodeBg},
+  basicstyle=\ttfamily\footnotesize,
+  commentstyle=\color{kodeKomentar}\itshape,
+  keywordstyle=\color{kodeKunci}\bfseries,
+  stringstyle=\color{kodeString},
+  numberstyle=\ttfamily\scriptsize\color{gray},
+  numbers=left, numbersep=8pt, stepnumber=1,
+  frame=single, rulecolor=\color{kodeBingkai},
+  breaklines=true, breakatwhitespace=false,
+  showstringspaces=false, tabsize=2,
+  captionpos=t, xleftmargin=18pt, framexleftmargin=14pt,
+  literate={→}{$\rightarrow$}{1} {≤}{$\le$}{1} {≥}{$\ge$}{1}
+           {×}{$\times$}{1} {—}{{-{}-}}1 {–}{{-}}1
+}
+\lstset{style=kode}
+% Listings are numbered per chapter ("Kode Sumber 5.1"): the listings
+% package does this itself when a chapter counter exists (numberbychapter).
+
+% ── Micro-typography and hyperlinks ───────────────────────────────────
+\usepackage{microtype}
+\setlength{\emergencystretch}{3em}
+\usepackage[hidelinks]{hyperref}
+% xurl: \url breaks long bibliography URLs at any character instead of
+% running into the margin. Load it after hyperref.
+\usepackage{xurl}
+
+% =====================================================================
+%  OBJECT INTERFACES
+% =====================================================================
+
+% Figure wrapper: one \includegraphics, constrained to the text block.
+% Caption and label stay in the surrounding figure environment.
+\newcommand{\thesisfigure}[1]{%
+  \adjustbox{max width=\textwidth,max totalheight=0.87\textheight,center}{#1}%
+}
+
+% Table wrapper: scopes table typography around a longtable (and around a
+% landscape environment when the table is wide). Column widths, repeated
+% headers and labels belong to the individual table.
+\newenvironment{thesistable}{%
+  \small
+  \setstretch{1.05}%
+  \setlength{\tabcolsep}{3pt}%
+  \renewcommand{\arraystretch}{1.12}%
+}{}
+
+% Bibliography block: hanging indent for the manually maintained Harvard
+% ARU entries. The block is a container only; entries remain manuscript
+% text.
+\newenvironment{thesisbibliography}{%
+  \setlength{\parindent}{-0.5cm}%
+  \setlength{\leftskip}{0.5cm}%
+  \setlength{\parskip}{6pt}%
+}{%
+  \par
+}
+
+% =====================================================================
+%  ADMINISTRATIVE PAGES
+% =====================================================================
+% These are layout compositions driven by metadata.tex. They contain no
+% signatures, stamps or signature dates; only the metadata values appear.
+
 \newcommand{\thesiscoverpage}{%
-  \begin{titlepage}\centering
-  \ThesisTitle\\[1cm]
-  \includegraphics[width=5cm]{assets/logo.pdf}
-  \end{titlepage}}
-\newcommand{\thesisapprovalpage}{\chapter*{Lembar Pengesahan}\ThesisAuthor}
-\newcommand{\thesisdeclarationpage}{\chapter*{Pernyataan Keaslian}\ThesisAuthor}
+  \begin{titlepage}%
+  \centering
+  \vspace*{1cm}
+  {\normalsize\bfseries \MakeUppercase{\ThesisTitle}}\\[0.9cm]
+  {\normalsize\bfseries \ThesisType}\\[0.4cm]
+  {\normalsize Untuk memenuhi sebagian persyaratan memperoleh gelar
+   \ThesisDegree}\\[1.8cm]
+  {\normalsize Disusun oleh:}\\[0.2cm]
+  {\normalsize \ThesisAuthor}\\[0.1cm]
+  {\normalsize NIM: \ThesisNIM}\\[2.5cm]
+  \includegraphics[width=5cm]{assets/ub-logo-small.png}\\[2.5cm]
+  {\normalsize PROGRAM STUDI \MakeUppercase{\ThesisProgram}}\\[0.15cm]
+  {\normalsize DEPARTEMEN \MakeUppercase{\ThesisDepartment}}\\[0.15cm]
+  {\normalsize FAKULTAS \MakeUppercase{\ThesisFaculty}}\\[0.15cm]
+  {\normalsize UNIVERSITAS \MakeUppercase{\ThesisUniversity}}\\[0.15cm]
+  {\normalsize \MakeUppercase{\ThesisCity}}\\[0.15cm]
+  {\normalsize \MakeUppercase{\ThesisYear}}
+  \end{titlepage}%
+}
+
+\newcommand{\thesisapprovalpage}{%
+  \chapter*{Lembar Pengesahan}%
+  \addcontentsline{toc}{chapter}{Lembar Pengesahan}%
+  \begin{center}
+    Tesis dengan judul:\\[0.3cm]
+    {\bfseries ``\ThesisTitle''}\\[0.3cm]
+    yang ditulis oleh:\\[0.3cm]
+    {\bfseries \ThesisAuthor}\\
+    NIM: \ThesisNIM\\[1cm]
+    telah diuji dan dinyatakan lulus pada tanggal \ThesisExamDate.
+  \end{center}
+  \vspace{1.5cm}
+  \noindent
+  \begin{tabular}{@{}p{6.7cm}p{6.7cm}@{}}
+    Menyetujui, & \\[0.3cm]
+    Pembimbing I, & Pembimbing II, \\[2.5cm]
+    \underline{\ThesisSupervisorOne} & \underline{\ThesisSupervisorTwo} \\
+    NIP. \ThesisSupervisorOneNIP & NIP. \ThesisSupervisorTwoNIP \\
+  \end{tabular}\par
+  \vspace{1.5cm}
+  \noindent
+  \begin{tabular}{@{}p{6.7cm}p{6.7cm}@{}}
+    \multicolumn{2}{@{}p{13.4cm}@{}}{Mengetahui,} \\[0.3cm]
+    Ketua Program Studi & Kepala Departemen \\
+    \ThesisProgram & \ThesisDepartment \\[2cm]
+    \underline{\ThesisHeadOfProgram} & \underline{\ThesisHeadOfDepartment} \\
+    NIP. \ThesisHeadOfProgramNIP & NIP. \ThesisHeadOfDepartmentNIP \\
+  \end{tabular}
+}
+
+\newcommand{\thesisdeclarationpage}{%
+  \chapter*{Pernyataan Keaslian}%
+  \addcontentsline{toc}{chapter}{Pernyataan Keaslian}%
+  \noindent Saya yang bertanda tangan di bawah ini:
+  \vspace{0.5cm}
+
+  \noindent
+  \begin{tabular}{@{}l l p{8.5cm}@{}}
+    Nama          & : & \ThesisAuthor \\
+    NPM           & : & \ThesisNIM \\
+    Program Studi & : & \ThesisProgram \\
+    Judul Tesis   & : & \ThesisTitle \\
+  \end{tabular}
+
+  \vspace{0.5cm}
+  \noindent menyatakan bahwa tesis ini adalah hasil karya sendiri dan tidak
+  mengandung karya yang pernah diajukan untuk memperoleh gelar akademik di
+  suatu perguruan tinggi, dan tidak terdapat karya atau pendapat yang pernah
+  ditulis atau diterbitkan oleh orang lain, kecuali yang secara tertulis
+  diacu dalam naskah ini dan disebutkan dalam daftar pustaka.
+
+  \vspace{2cm}
+  \noindent
+  \begin{tabular}{@{}p{6cm}p{7.5cm}@{}}
+     & \ThesisCity, \ThesisYear \\[0.2cm]
+     & Yang menyatakan, \\[2.5cm]
+     & \underline{\ThesisAuthor} \\
+     & NPM. \ThesisNIM \\
+  \end{tabular}
+}

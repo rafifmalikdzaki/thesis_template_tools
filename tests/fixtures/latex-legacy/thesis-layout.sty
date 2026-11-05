@@ -1,0 +1,26 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{thesis-layout}[fixture layout]
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{pdflscape}
+\usepackage{amsmath}
+\usepackage{listings}
+
+\newcommand{\thesisfigure}[1]{\includegraphics{#1}}
+\newenvironment{thesistable}{}{}
+\newenvironment{thesisbibliography}{}{}
+
+% Page-numbering transitions may live in interface macros.
+\newcommand{\thesisfrontmatter}{\pagenumbering{roman}\setcounter{page}{1}}
+\newcommand{\thesismainmatter}{\pagenumbering{arabic}\setcounter{page}{1}}
+\newcommand{\thesisappendix}{\appendix}
+
+\newcommand{\thesiscoverpage}{%
+  \begin{titlepage}\centering
+  \ThesisTitle\\[1cm]
+  \includegraphics[width=5cm]{assets/logo.pdf}
+  \end{titlepage}}
+\newcommand{\thesisapprovalpage}{\chapter*{Lembar Pengesahan}\ThesisAuthor}
+\newcommand{\thesisdeclarationpage}{\chapter*{Pernyataan Keaslian}\ThesisAuthor}

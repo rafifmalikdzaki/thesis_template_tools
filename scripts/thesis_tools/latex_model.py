@@ -226,6 +226,7 @@ class LatexProject:
     root: Path
     main: Path
     metadata: Path | None
+    class_file: Path | None
     preamble: Path | None
     layout: Path | None
     includes: list[Include]
@@ -237,6 +238,20 @@ class LatexProject:
     def content_includes(self) -> list[Include]:
         return self.includes
 
+    @property
+    def interface_files(self) -> list[Path]:
+        """Class/package files that define the project interface.
+
+        The class (new layout) and the preamble (legacy layout) are build
+        boilerplate: they are scanned for asset references, never converted.
+        """
+        files = (self.class_file, self.preamble, self.layout)
+        return [path for path in files if path is not None and path.is_file()]
+
+    @property
+    def uses_class(self) -> bool:
+        return self.class_file is not None and self.class_file.is_file()
+
     @classmethod
     def discover(cls, root: Path) -> "LatexProject":
         root = root.resolve()
@@ -246,6 +261,7 @@ class LatexProject:
         if not main.is_file():
             raise ToolError(f"{root}: main.tex is missing; not a LaTeX thesis starter")
         metadata = _first_existing(root / "metadata.tex", root / "latex" / "metadata.tex")
+        class_file = _first_existing(root / "thesis.cls", root / "latex" / "thesis.cls")
         preamble = _first_existing(root / "preamble.tex", root / "latex" / "preamble.tex")
         layout = _first_existing(
             root / "thesis-layout.sty", root / "latex" / "thesis-layout.sty"
@@ -253,7 +269,7 @@ class LatexProject:
         main_text = read_text(main)
         includes, extra_content = _discover_content(root, main_text)
         graphicspaths: list[str] = []
-        for candidate in (preamble, layout):
+        for candidate in (class_file, preamble, layout):
             if candidate is not None and candidate.is_file():
                 graphicspaths.extend(parse_graphicspaths(read_text(candidate)))
         assets_dir = root / "assets" if (root / "assets").is_dir() else None
@@ -261,6 +277,7 @@ class LatexProject:
             root=root,
             main=main,
             metadata=metadata,
+            class_file=class_file,
             preamble=preamble,
             layout=layout,
             includes=includes,

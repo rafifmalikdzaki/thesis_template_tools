@@ -1,0 +1,33 @@
+% !TEX program = pdflatex
+% =====================================================================
+%  FIXTURE MASTER — LaTeX
+% =====================================================================
+\documentclass[12pt,a4paper]{report}
+
+\input{preamble}
+
+\begin{document}
+
+\pagenumbering{gobble}
+\include{frontmatter/cover}
+
+\thesisfrontmatter
+\include{frontmatter/lembar_pengesahan}
+\include{frontmatter/pernyataan_keaslian}
+\include{frontmatter/abstrak}
+
+\tableofcontents
+\listoffigures
+\listoftables
+\lstlistoflistings
+
+\thesismainmatter
+\include{chapters/bab1}
+\include{chapters/bab2}
+
+\include{backmatter/referensi}
+
+\thesisappendix
+\include{lampiran/lampiran_a}
+
+\end{document}

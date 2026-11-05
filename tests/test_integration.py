@@ -36,36 +36,23 @@ class RealRepositoryTests(support.ToolTestCase):
         _copy_repository(support.REAL_LATEX, self.latex)
         _copy_repository(support.REAL_TYPST, self.typst)
 
-    def _build_typst(self) -> bool:
-        compiler = shutil.which("typst")
-        if compiler is None:
-            return False
-        command = [compiler, "compile"]
-        fonts = self.typst / "fonts"
-        if fonts.is_dir():
-            command.extend(["--font-path", "fonts"])
-        command.extend(["main.typ", "main.pdf"])
-        process = subprocess.run(
-            command, cwd=self.typst, capture_output=True, text=True, timeout=300, check=False
-        )
-        if process.returncode != 0:
-            self.fail(f"typst build failed:\n{process.stdout}\n{process.stderr}")
-        return True
-
-    def _build_latex(self) -> bool:
-        compiler = shutil.which("latexmk")
-        if compiler is None:
+    def _build(self, repo: Path, label: str) -> bool:
+        """Build a project with its own ``bash build.sh``; skip without tools."""
+        script = repo / "build.sh"
+        if not script.is_file():
             return False
         process = subprocess.run(
-            [compiler, "-pdf", "-interaction=nonstopmode", "-halt-on-error", "main.tex"],
-            cwd=self.latex,
+            ["bash", "build.sh"],
+            cwd=repo,
             capture_output=True,
             text=True,
-            timeout=600,
+            timeout=900,
             check=False,
         )
         if process.returncode != 0:
-            self.fail(f"latexmk build failed:\n{process.stdout[-4000:]}\n{process.stderr[-2000:]}")
+            self.fail(
+                f"{label} build failed:\n{process.stdout[-4000:]}\n{process.stderr[-2000:]}"
+            )
         return True
 
     def test_forward_conversion_runs_and_checks(self) -> None:
@@ -79,8 +66,10 @@ class RealRepositoryTests(support.ToolTestCase):
             ["--source", str(support.REAL_LATEX), "--target", str(self.typst), "--check"],
         )
         self.assertEqual(code, 0, out + err)
-        built = self._build_typst()
-        report = verify(support.REAL_LATEX, self.typst)
+        # Build both copies so parity compares current sources, not a stale PDF.
+        latex_built = self._build(self.latex, "LaTeX")
+        typst_built = self._build(self.typst, "Typst")
+        report = verify(self.latex, self.typst)
         self.assertFalse(
             report.failed,
             "converted Typst project failed parity:\n"
@@ -91,8 +80,8 @@ class RealRepositoryTests(support.ToolTestCase):
                 for line in [f"[{check.number}] {check.name}: {check.status}"] + check.details
             ),
         )
-        if not built:
-            self.skipTest("typst compiler unavailable; conversion checked without a build")
+        if not (latex_built and typst_built):
+            self.skipTest("LaTeX/Typst toolchain unavailable; conversion checked without builds")
 
     def test_reverse_conversion_runs_and_checks(self) -> None:
         code, out, err = self.run_tool(
@@ -105,8 +94,9 @@ class RealRepositoryTests(support.ToolTestCase):
             ["--source", str(support.REAL_TYPST), "--target", str(self.latex), "--check"],
         )
         self.assertEqual(code, 0, out + err)
-        built = self._build_latex()
-        report = verify(self.latex, support.REAL_TYPST)
+        latex_built = self._build(self.latex, "LaTeX")
+        typst_built = self._build(self.typst, "Typst")
+        report = verify(self.latex, self.typst)
         self.assertFalse(
             report.failed,
             "converted LaTeX project failed parity:\n"
@@ -117,8 +107,8 @@ class RealRepositoryTests(support.ToolTestCase):
                 for line in [f"[{check.number}] {check.name}: {check.status}"] + check.details
             ),
         )
-        if not built:
-            self.skipTest("latexmk unavailable; conversion checked without a build")
+        if not (latex_built and typst_built):
+            self.skipTest("LaTeX/Typst toolchain unavailable; conversion checked without builds")
 
     def test_metadata_sync_is_clean_on_real_repositories(self) -> None:
         import sync_metadata

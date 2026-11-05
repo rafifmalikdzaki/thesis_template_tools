@@ -7,11 +7,13 @@ Usage::
         --target ../thesis_template [--check]
 
 Best-effort reverse conversion of the constructs the Typst starter uses.  The
-converter writes the manuscript, ``metadata.tex`` and the LaTeX build/editor
-support files (the ``% !TEX program`` magic comment, ``.latexmkrc`` and
-``overleaf.txt``).  The target must already be the LaTeX starter: it owns
-``preamble.tex`` and ``thesis-layout.sty``, which the converter does not
-overwrite.
+converter writes the class-based, engine-agnostic LaTeX project: the
+manuscript, ``metadata.tex``, the canonical ``thesis.cls`` and
+``thesis-layout.sty`` templates, an engine-neutral ``.latexmkrc`` (pdfLaTeX,
+XeLaTeX and LuaLaTeX command lines, no ``$pdf_mode``) and ``overleaf.txt``
+(pdfLaTeX recommended, XeLaTeX/LuaLaTeX selectable).  The target must be the
+LaTeX starter — class-based (``thesis.cls``) or legacy (``preamble.tex``) —
+because it supplies the manuscript structure and assets.
 
 Unsupported constructs fail with file, line and construct; ``--check``
 regenerates in memory and compares without writing.

@@ -1,0 +1,5 @@
+Overleaf import instructions (fixture)
+
+1. Upload the project.
+2. Select the pdfLaTeX compiler.
+3. Build; main.tex is the master document.

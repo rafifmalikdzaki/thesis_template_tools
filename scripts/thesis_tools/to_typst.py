@@ -89,9 +89,10 @@ def convert_latex_to_typst(source: Path, target: Path) -> ConversionResult:
             project, include, template_rel, result, label_kinds
         )
 
-    for layout_path in (project.preamble, project.layout):
-        if layout_path is not None and layout_path.is_file():
-            _collect_layout_assets(project, layout_path, result)
+    # Class/package files are build boilerplate: they are scanned only for
+    # asset references (the institutional logo), never converted into Typst.
+    for layout_path in project.interface_files:
+        _collect_layout_assets(project, layout_path, result)
     if "main.typ" not in result.files:
         raise ToolError("conversion produced no main.typ")
     return result

@@ -175,7 +175,7 @@ class RoundTripTests(support.ToolTestCase):
         )
         self.assertEqual(code, 0, err)
         self.assertTrue((self.typst_target / "assets" / "fig-1.pdf").is_file())
-        self.assertTrue((self.typst_target / "assets" / "logo.pdf").is_file())
+        self.assertTrue((self.typst_target / "assets" / "ub-logo-small.png").is_file())
 
 
 if __name__ == "__main__":

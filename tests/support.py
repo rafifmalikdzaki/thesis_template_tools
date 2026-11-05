@@ -22,6 +22,7 @@ if str(SCRIPTS) not in sys.path:
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 LATEX_FIXTURE = FIXTURES / "latex"
+LATEX_LEGACY_FIXTURE = FIXTURES / "latex-legacy"
 TYPST_FIXTURE = FIXTURES / "typst"
 MISMATCH_OVERLAY = FIXTURES / "mismatch_typst"
 
@@ -31,12 +32,20 @@ REAL_TYPST = TOOLS_ROOT.parent / "thesis_template_typst"
 
 
 def real_projects_available() -> bool:
+    """Both siblings exist and the LaTeX project exposes an interface.
+
+    The LaTeX repository is being migrated to the class-based layout, so the
+    legacy ``preamble.tex`` and the new ``thesis.cls`` are both accepted.
+    """
+    latex_interface = (REAL_LATEX / "thesis.cls").is_file() or (
+        REAL_LATEX / "preamble.tex"
+    ).is_file()
     return (
         (REAL_LATEX / "main.tex").is_file()
+        and latex_interface
+        and (REAL_LATEX / "thesis-layout.sty").is_file()
         and (REAL_TYPST / "main.typ").is_file()
         and (REAL_TYPST / "template.typ").is_file()
-        and (REAL_LATEX / "preamble.tex").is_file()
-        and (REAL_LATEX / "thesis-layout.sty").is_file()
     )
 
 

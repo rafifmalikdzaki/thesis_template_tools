@@ -8,6 +8,8 @@ import support
 
 import convert_latex_to_typst
 from thesis_tools.common import write_text_atomic
+from thesis_tools.latex_model import LatexProject
+from thesis_tools.to_typst import convert_latex_to_typst as convert_latex_to_typst_result
 
 
 class ConvertToTypstTests(support.ToolTestCase):
@@ -123,6 +125,32 @@ class ConvertToTypstTests(support.ToolTestCase):
         )
         self.assertEqual(code, 2)
         self.assertIn("template.typ", err)
+
+    def test_class_based_project_is_detected(self) -> None:
+        project = LatexProject.discover(support.LATEX_FIXTURE)
+        self.assertTrue(project.uses_class)
+        self.assertIsNotNone(project.class_file)
+        self.assertIsNone(project.preamble)
+        self.assertEqual(
+            [path.name for path in project.interface_files],
+            ["thesis.cls", "thesis-layout.sty"],
+        )
+
+    def test_legacy_preamble_project_is_accepted(self) -> None:
+        project = LatexProject.discover(support.LATEX_LEGACY_FIXTURE)
+        self.assertFalse(project.uses_class)
+        self.assertIsNone(project.class_file)
+        self.assertIsNotNone(project.preamble)
+
+        # The legacy source converts to exactly the same Typst manuscript:
+        # class/font boilerplate is never converted.
+        legacy_target = self.copy(support.TYPST_FIXTURE, "typst-legacy")
+        class_target = self.copy(support.TYPST_FIXTURE, "typst-class")
+        class_result = convert_latex_to_typst_result(support.LATEX_FIXTURE, class_target)
+        legacy_result = convert_latex_to_typst_result(
+            support.LATEX_LEGACY_FIXTURE, legacy_target
+        )
+        self.assertEqual(class_result.files, legacy_result.files)
 
     def test_landscape_table_and_appendix(self) -> None:
         code, _out, err = self.convert()

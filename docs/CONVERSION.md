@@ -12,18 +12,48 @@ The converters write the manuscript, metadata and referenced assets. They do
 
 | Direction | Target requirement | Written | Never written |
 | --- | --- | --- | --- |
-| LaTeX -> Typst | `template.typ` exposing `thesis-figure`, `thesis-table`, `listing`, `equation-row`, `thesis-bibliography`, `appendix`, `landscape`, `outline-page`, `cover-page`, `approval-page`, `declaration-page`, `thesis` | `main.typ`, `metadata.json`, `frontmatter/`, `chapters/`, `backmatter/`, `lampiran/`, `assets/` | `template.typ`, `fonts/`, `build.sh`, `docs/`, CI, `README.md` |
-| Typst -> LaTeX | `preamble.tex` and `thesis-layout.sty` exposing `\thesisfigure`, the `thesistable` and `thesisbibliography` environments, the administrative-page macros and the page-transition macros | `main.tex` (with `% !TEX program = pdflatex`), `metadata.tex`, `.latexmkrc`, `overleaf.txt`, `frontmatter/`, `chapters/`, `backmatter/`, `lampiran/`, `assets/` | `preamble.tex`, `thesis-layout.sty`, `build.sh`, `docs/`, CI, `README.md` |
+| LaTeX -> Typst | `template.typ` exposing `thesis-figure`, `thesis-table`, `listing`, `equation-row`, `thesis-bibliography`, `appendix`, `landscape`, `outline-page`, `cover-page`, `approval-page`, `declaration-page`, `thesis` | `main.typ`, `metadata.json`, `frontmatter/`, `chapters/`, `backmatter/`, `lampiran/`, `assets/` | `template.typ`, `fonts/`, `build.sh`, `docs/`, CI, `README.md`; the LaTeX class, package and preamble are never converted into Typst content |
+| Typst -> LaTeX | a LaTeX starter exposing the layout interfaces, either class-based (`thesis.cls` + `thesis-layout.sty`) or legacy (`preamble.tex` + `thesis-layout.sty`) | `main.tex` (with `% !TEX program = pdflatex` and `\documentclass{thesis}`), `metadata.tex`, the canonical `thesis.cls` and `thesis-layout.sty`, engine-neutral `.latexmkrc`, `overleaf.txt`, `frontmatter/`, `chapters/`, `backmatter/`, `lampiran/`, `assets/` | `build.sh`, `docs/`, CI, `README.md`; a legacy `preamble.tex` is left untouched but is no longer read by the emitted class |
+
+### LaTeX output: class-based and engine-agnostic
+
+The Typst -> LaTeX direction emits the class-based project:
+
+* `main.tex` starts with `% !TEX program = pdflatex` and uses
+  `\documentclass{thesis}`; it no longer `\input`s a preamble.
+* `thesis.cls` (canonical template, `scripts/templates/latex/`) owns the engine
+  setup: `\LoadClass[12pt,a4paper]{report}`, `iftex` branches (pdfLaTeX: T1 +
+  helvet + sansmathfonts + amsmath/amssymb; XeLaTeX/LuaLaTeX: fontspec with
+  filename-based TeX Gyre Heros and Latin Modern Mono, plus unicode-math with
+  Latin Modern Math), Indonesian `babel`, `metadata.tex`, the layout package and
+  the hyperref document information.
+* `thesis-layout.sty` (canonical template) owns geometry, headings, captions,
+  object interfaces and the administrative pages, and never reloads an engine
+  font package.
+* `.latexmkrc` is engine-neutral: it defines the `$pdflatex`, `$xelatex` and
+  `$lualatex` command lines and deliberately does **not** set `$pdf_mode`; the
+  engine is chosen on the latexmk command line (`build.sh --engine=...` or
+  Overleaf's compiler setting). No BibTeX, Biber or makeindex pass is configured.
+* `overleaf.txt` recommends pdfLaTeX and explains that XeLaTeX/LuaLaTeX are
+  selectable in Overleaf.
+
+pdfLaTeX is the recommended engine (institutional Helvetica look, stable
+pagination); the XeLaTeX/LuaLaTeX branch uses OpenType fonts by filename from the
+TeX distribution, so no system fonts are needed but pagination may shift. Latin
+Modern Math has no U+2713, so that branch renders the comparison-table check
+mark (\checkmark) from DejaVu Sans; the override is inside the Unicode branch
+only and must not be moved to the pdfLaTeX path.
 
 Build/editor support files are handled explicitly:
 
 * LaTeX -> Typst **ignores** the `% !TEX program = pdflatex` magic comment,
   `.latexmkrc`, `overleaf.txt`, `build.sh`, `examples/` and `main.pdf`; none of
   them is copied into the Typst project.
-* Typst -> LaTeX **writes** a `% !TEX program = pdflatex` first line, a root
-  `.latexmkrc` (latexmk + pdflatex, no BibTeX stage) and a root `overleaf.txt`
-  consistent with the LaTeX starter, so the converted project is immediately
-  buildable and uploadable.
+* Typst -> LaTeX **writes** a `% !TEX program = pdflatex` first line, the
+  canonical `thesis.cls`/`thesis-layout.sty`, an engine-neutral `.latexmkrc`
+  (pdfLaTeX/XeLaTeX/LuaLaTeX commands, no `$pdf_mode`, no BibTeX/index) and a
+  root `overleaf.txt` (pdfLaTeX recommended, XeLaTeX/LuaLaTeX selectable), so the
+  converted project is immediately buildable and uploadable.
 
 ### `--check` semantics
 
@@ -151,8 +181,9 @@ Round trip (`LaTeX -> Typst -> LaTeX`) preserves **semantics, not bytes**:
   Typst starter), and math notation (`F_1 = 2 \cdot \frac{...}` becomes
   `$F_1 = 2 dot frac(...)$` and back to equivalent LaTeX);
 * expected differences: cross-engine pagination, line breaks, list-of-*
-  formatting, the LaTeX-only multipage continuation banner, and URL wrapping.
-  The parity verifier reports these explicitly instead of hiding them.
+  formatting, the LaTeX-only multipage continuation banner, URL wrapping and the
+  page-count shift between pdfLaTeX and the XeLaTeX/LuaLaTeX branch. The parity
+  verifier reports these explicitly instead of hiding them.
 
 ## Parity verifier
 
